@@ -1,0 +1,506 @@
+import requests
+import os
+import json
+from time import sleep
+import ctypes
+from colorama import init
+from colorama import Fore, Back, Style
+import pandas as pd
+import random
+from requests.sessions import Session
+from threading import Thread,local
+from queue import Queue
+init(autoreset=True)
+
+
+os.system("cls")
+
+q = Queue(maxsize=0)
+thread_local = local()
+
+
+def get_session() -> Session:
+    if not hasattr(thread_local,'session'):
+        thread_local.session = requests.Session() # Create a new Session if not exists
+    return thread_local.session
+
+session = get_session()
+
+with open('config.json', 'r') as arquivo:
+    config = json.load(arquivo)
+
+def getauth(email, password):
+    url = "https://auth-server.portalsas.com.br/v2/auth"
+    headers = {
+        "Content-Type": "application/json; charset=UTF-8",
+        "Accept": "application/json"
+    }
+
+    data = {
+        "login": email,
+        "password": password
+    }
+
+    response = session.post(url=url, json=data, headers=headers)
+    return f"Bearer {response.json()['authResponse']['token']}"
+
+if config["AUTH"] == "":
+    config["AUTH"] = getauth(config["email"], config["password"])
+    with open('config.json', 'w') as arquivo:
+        json.dump(config, arquivo, indent=7)
+
+AUTH = config["AUTH"]
+
+
+oldeureka = config["assignmentId"]
+question_stop = config["questionStop"]
+safemode = config["safemode"]
+
+delay = config["delay"]
+
+
+ctypes.windll.kernel32.SetConsoleTitleW("Auto Eureka | Version: BETA | By: real_modelz and realw")
+
+def main():
+    print(Fore.CYAN + """
+ █████╗ ██╗   ██╗████████╗ ██████╗     ███████╗██╗   ██╗██████╗ ███████╗██╗  ██╗ █████╗ 
+██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗    ██╔════╝██║   ██║██╔══██╗██╔════╝██║ ██╔╝██╔══██╗
+███████║██║   ██║   ██║   ██║   ██║    █████╗  ██║   ██║██████╔╝█████╗  █████╔╝ ███████║
+██╔══██║██║   ██║   ██║   ██║   ██║    ██╔══╝  ██║   ██║██╔══██╗██╔══╝  ██╔═██╗ ██╔══██║
+██║  ██║╚██████╔╝   ██║   ╚██████╔╝    ███████╗╚██████╔╝██║  ██║███████╗██║  ██╗██║  ██║
+╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝                                                                                      
+                        [Descubra as respostas certas!]
+""")
+    
+    print(Fore.GREEN + f"""
+[1] Descobrir A Resposta Certa
+[2] Auto Eureka
+[3] Auto World
+{Fore.YELLOW + "[4] Mudar Eureka Antigo"}
+{Fore.YELLOW + "[5] Resetar Token De Autenticação [AUTH]"}
+{Fore.YELLOW + "[6] Reiniciar Eurekas de Um Mundo"}
+{Fore.RED + "[7] Sair"}
+          
+    """) 
+    option = int(input("[>>] Qual opção você deseja usar? "))
+    if option == 1:
+        if config["assignmentId"] == "":
+            option4 = input("[>>] Oops! Parece que é a primeira vez que você vem aqui. Insira um Eureka Antigo que você já tenha feito: ")
+            oldeureka_questionid = option4.split("/")[-2]
+            config["assignmentId"] = getassignmentcode(oldeureka_questionid)
+            with open('config.json', 'w') as arquivo:
+                json.dump(config, arquivo, indent=7)
+            global oldeureka
+            oldeureka = getassignmentcode(oldeureka_questionid)
+        option3 = input("[>>] Insira o Eureka que você deseja pegar a resposta: ")
+        global oneureka
+        oneureka = option3
+        option_letters = ['A', 'B', 'C', 'D', 'E']
+        os.system("cls")
+        print(Fore.CYAN + """
+ █████╗ ██╗   ██╗████████╗ ██████╗     ███████╗██╗   ██╗██████╗ ███████╗██╗  ██╗ █████╗ 
+██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗    ██╔════╝██║   ██║██╔══██╗██╔════╝██║ ██╔╝██╔══██╗
+███████║██║   ██║   ██║   ██║   ██║    █████╗  ██║   ██║██████╔╝█████╗  █████╔╝ ███████║
+██╔══██║██║   ██║   ██║   ██║   ██║    ██╔══╝  ██║   ██║██╔══██╗██╔══╝  ██╔═██╗ ██╔══██║
+██║  ██║╚██████╔╝   ██║   ╚██████╔╝    ███████╗╚██████╔╝██║  ██║███████╗██║  ██╗██║  ██║
+╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝                                                                                      
+                    [Modo: Descobrir A Resposta Certa]
+""")
+        print(Fore.GREEN + f"[+] A resposta correta é: {option_letters[getrightquestion(option3.split('/')[-2])]}")
+        print("-------------------------------------------------")
+        input("[>>] Aperte ENTER para voltar ao menu: ")
+        os.system("cls")
+        main()
+
+    if option == 2:
+        if config["assignmentId"] == "":
+            option4 = input("[>>] Oops! Parece que é a primeira vez que você vem aqui. Insira um Eureka Antigo que você já tenha feito: ")
+            oldeureka_questionid = option4.split("/")[-2]
+            config["assignmentId"] = getassignmentcode(oldeureka_questionid)
+            with open('config.json', 'w') as arquivo:
+                json.dump(config, arquivo, indent=7)
+            oldeureka = getassignmentcode(oldeureka_questionid)
+
+        option3 = input("[>>] Insira o Eureka que você deseja fazer: ")
+        oneureka = option3
+        os.system("cls")
+        autoeureka()
+    elif option == 3:
+        if config["assignmentId"] == "":
+            option4 = input("[>>] Oops! Parece que é a primeira vez que você vem aqui. Insira um Eureka Antigo que você já tenha feito: ")
+            oldeureka_questionid = option4.split("/")[-2]
+            config["assignmentId"] = getassignmentcode(oldeureka_questionid)
+            with open('config.json', 'w') as arquivo:
+                json.dump(config, arquivo, indent=7)
+            oldeureka = getassignmentcode(oldeureka_questionid)
+        option4 = input("[>>] Insira o Mundo Eureka que você deseja fazer: ")
+        oneureka = option4
+        os.system("cls")
+        autoworld()
+    elif option == 4:
+        option4 = input("[>>] Insira um Eureka Antigo que você já tenha feito: ")
+        oldeureka_questionid = option4.split("/")[-2]
+        config["assignmentId"] = getassignmentcode(oldeureka_questionid)
+        with open('config.json', 'w') as arquivo:
+            json.dump(config, arquivo, indent=7)
+        oldeureka = getassignmentcode(oldeureka_questionid)
+        print("-------------------------------------------------")
+        print(Fore.GREEN + "[+] Eureka Antigo alterado com sucesso!")
+        print("-------------------------------------------------")
+        input("[>>] Aperte ENTER para voltar ao menu: ")
+        os.system("cls")
+        main()
+    elif option == 5:
+        config["AUTH"] = getauth(config["email"], config["password"])
+        with open('config.json', 'w') as arquivo:
+            json.dump(config, arquivo, indent=7)
+        print(Fore.GREEN + "[+] Token De Autenticação [AUTH] resetado com sucesso!")
+        print("-------------------------------------------------")
+        input("[>>] Aperte ENTER para voltar ao menu: ")
+        os.system("cls")
+        main()
+    elif option == 6:
+        option4 = input("[>>] Insira um Mundo Eureka que você deseja reiniciar: ")
+        oneureka = option4
+        option5 = input("[>>] Você deseja reiniciar os Eurekas com Lupa Dourada? [y/n]: ")
+        if option5 == "y":
+            os.system("cls")
+            restartall(True)
+        elif option5 == "n":
+            os.system("cls")
+            restartall()
+        else:
+            print(Fore.RED + f"[-] Opção errada!")
+            sleep(3)
+            os.system("cls")
+            main()
+    else:
+        print(Fore.RED + f"[-] Opção errada!")
+        sleep(3)
+        os.system("cls")
+        main()
+
+
+
+def getquestionid(eurekaid):
+    url = f"https://assignment-backend.sasdigital.com.br/questionnaires/{eurekaid}/assignments" 
+
+    headers = {
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "pt-BR,pt;q=0.8",
+        "authorization": AUTH,
+        "sec-ch-ua": "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Brave\";v=\"116\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "sec-gpc": "1"
+    }
+
+
+    fakeresponse = session.get(url, headers=headers)
+    realresponse = fakeresponse.json()
+    id = realresponse["id"]
+    return id
+
+def getassignmentcode(eurekaid):
+    url = f"https://assignment-backend.sasdigital.com.br/questionnaires/{eurekaid}/assignments" 
+
+    headers = {
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "pt-BR,pt;q=0.8",
+        "authorization": AUTH,
+        "sec-ch-ua": "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Brave\";v=\"116\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "sec-gpc": "1"
+    }
+
+
+    fakeresponse = session.get(url, headers=headers)
+    realresponse = fakeresponse.json()
+    code = realresponse["assignment"]["code"]
+    return code
+
+def getrightquestion(eurekaid):
+
+    ## /Online
+    oneureka_questionid = getquestionid(eurekaid)
+
+    url = f"https://assignment-backend.sasdigital.com.br/assignments/{oldeureka}/answers"
+
+    headers = {
+        "Authorization": AUTH,
+        "Content-Type": "application/json; charset=UTF-8",
+        "Accept": "application/json"
+    }
+
+    data = {
+        "markedOption": 1,
+        "questionId": oneureka_questionid
+    }
+    
+    response = session.post(url, headers=headers, json=data)
+        
+    correct_option = response.json()["answer"]["correctOption"]
+    return correct_option
+
+
+def markquestion(assignment, option, questionid):
+    url = f"https://assignment-backend.sasdigital.com.br/assignments/{assignment}/answers"
+
+    headers = {
+        "Authorization": AUTH,
+        "Content-Type": "application/json; charset=UTF-8",
+        "Accept": "application/json"
+    }
+
+    data = {
+        "markedOption": option,
+        "questionId": questionid
+    }
+    
+
+    session.post(url, headers=headers, json=data)
+
+def passquestion(assignmentid):
+    url = f"https://assignment-backend.sasdigital.com.br/assignments/{assignmentid}/questions"
+    headers = {
+        "Authorization": AUTH,
+        "Content-Type": "application/json; charset=UTF-8",
+        "Accept": "application/json"
+    }
+    session.get(url=url, headers=headers)
+
+def finisheureka(assignmentid):
+    url = f"https://assignment-backend.sasdigital.com.br/assignments/{assignmentid}"
+    headers = {
+        "Authorization": AUTH,
+        "Content-Type": "application/json; charset=UTF-8",
+        "Accept": "application/json"
+    }
+    json = {
+        "status":"finished"
+    }
+    requests.put(url=url, headers=headers, json=json)
+
+
+
+
+def getcurrentquestion(assignmentid):
+    url = f"https://assignment-backend.sasdigital.com.br/assignments/{assignmentid}/progress"
+    headers = {
+        "Authorization": AUTH,
+        "Content-Type": "application/json; charset=UTF-8",
+        "Accept": "application/json"
+    }
+    response = session.get(url=url, headers=headers)
+    return response.json()["current"]
+
+
+def getchapters(urlreal):
+    headers = {
+        "Authorization": AUTH,
+        "Content-Type": "application/json; charset=UTF-8",
+        "Accept": "application/json"
+    }
+
+    lectureid = urlreal.split("/")[-2]
+    url = f"https://assignment-backend.sasdigital.com.br/game/lectures/{lectureid}/assignments?contentYear=2023&gradeId=15"
+    fakeresponse = session.get(url=url, headers=headers)
+    response = fakeresponse.json()
+    chapters = []
+
+    for item in response:
+        questionnaire_code = item.get('questionnaireCode')
+        status = item.get("status")
+        if status != "finished" and questionnaire_code != None:
+            chapters.append(questionnaire_code)
+    
+    return chapters
+
+def getdonechapters(urlreal):
+    headers = {
+        "Authorization": AUTH,
+        "Content-Type": "application/json; charset=UTF-8",
+        "Accept": "application/json"
+    }
+
+    lectureid = urlreal.split("/")[-2]
+    url = f"https://assignment-backend.sasdigital.com.br/game/lectures/{lectureid}/assignments?contentYear=2023&gradeId=15"
+    fakeresponse = session.get(url=url, headers=headers)
+    response = fakeresponse.json()
+    chapters = []
+
+    for item in response:
+        questionnaire_code = item.get('questionnaireCode')
+        status = item.get("status")
+        if status == "finished" and questionnaire_code != None:
+            chapters.append(questionnaire_code)
+    
+    return chapters
+
+
+def restartall(goldenMagnifier: bool = False):
+    chapters = getdonechapters(oneureka)
+    headers = {
+        "Authorization": AUTH,
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "pt-BR,pt;q=0.6",
+    }
+
+    headers2 = {
+        "Authorization": AUTH,
+        "Content-Type": "application/json; charset=UTF-8",
+        "Accept": "application/json"
+    }
+    print(Fore.CYAN + f"""
+
+ █████╗ ██╗   ██╗████████╗ ██████╗     ███████╗██╗   ██╗██████╗ ███████╗██╗  ██╗ █████╗ 
+██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗    ██╔════╝██║   ██║██╔══██╗██╔════╝██║ ██╔╝██╔══██╗
+███████║██║   ██║   ██║   ██║   ██║    █████╗  ██║   ██║██████╔╝█████╗  █████╔╝ ███████║
+██╔══██║██║   ██║   ██║   ██║   ██║    ██╔══╝  ██║   ██║██╔══██╗██╔══╝  ██╔═██╗ ██╔══██║
+██║  ██║╚██████╔╝   ██║   ╚██████╔╝    ███████╗╚██████╔╝██║  ██║███████╗██║  ██╗██║  ██║
+╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝
+                        [Modo: Reiniciar Eurekas de Um Mundo]                            
+""")
+
+    for chapter in chapters:
+        assignmentid = getassignmentcode(chapter)
+        url = f"https://assignment-backend.sasdigital.com.br/assignments/{assignmentid}/redo"
+        url2 = "https://assignment-backend.sasdigital.com.br/usage-items/goldenMagnifier"
+
+        response = session.post(url=url, headers=headers)
+        newassignmentid = response.text
+
+        data = {
+            "assignmentCode":newassignmentid,
+            "questionId":getquestionid(chapter)
+        }
+
+        if goldenMagnifier:
+            session.post(url=url2, headers=headers2, json=data)
+
+        print(Fore.GREEN + f"[+] Eureka de ID {chapter} reiniciado com sucesso!")
+
+    print("-------------------------------------------------")
+    input("[>>] Aperte ENTER para voltar ao menu: ")
+    os.system("cls")
+    main()
+
+def autoworld():
+    try:
+        chapters = getchapters(oneureka)
+    except Exception as peito:
+        print(f"Erro: {peito}.")
+        input("")
+    df = pd.DataFrame(chapters)
+    for chapter in chapters:
+        oneureka_assignment = getassignmentcode(chapter)
+        contador = 0
+        print(Fore.CYAN + f"""
+
+ █████╗ ██╗   ██╗████████╗ ██████╗     ███████╗██╗   ██╗██████╗ ███████╗██╗  ██╗ █████╗ 
+██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗    ██╔════╝██║   ██║██╔══██╗██╔════╝██║ ██╔╝██╔══██╗
+███████║██║   ██║   ██║   ██║   ██║    █████╗  ██║   ██║██████╔╝█████╗  █████╔╝ ███████║
+██╔══██║██║   ██║   ██║   ██║   ██║    ██╔══╝  ██║   ██║██╔══██╗██╔══╝  ██╔═██╗ ██╔══██║
+██║  ██║╚██████╔╝   ██║   ╚██████╔╝    ███████╗╚██████╔╝██║  ██║███████╗██║  ██╗██║  ██║
+╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝
+                                  [Modo: Auto World]
+                                    [Status: {chapters.index(chapter) + 1}/{len(df)}]                                                                
+""")
+        currentquestion = getcurrentquestion(oneureka_assignment)
+        while contador < ((question_stop + 1) - currentquestion):
+            oneureka_questionid = getquestionid(chapter)
+            oneureka_assignment = getassignmentcode(chapter)
+            try:
+                respostacerta = getrightquestion(chapter)
+            except KeyError:
+                print(Fore.RED + f"[-] Um erro ocorreu! Troque o link de Eureka antigo, ou resete seu Token de Autenticação [AUTH].")
+                sleep(2)
+                os.system("cls")
+                main()
+                break
+            markquestion(oneureka_assignment, respostacerta, oneureka_questionid)
+            contador += 1
+            if (currentquestion + contador) != (question_stop + 1):
+                passquestion(oneureka_assignment)
+                print(Fore.GREEN + f"[+] Questão de ID {oneureka_questionid} realizada! | Questão Atual: {currentquestion + contador}.")
+                spliteddelay = delay.split(", ")
+                delay1 = int(spliteddelay[0])
+                delay2 = int(spliteddelay[1])
+                if ((delay1 and delay2) != 0) and (safemode == True):
+                    realdelay = random.randint(delay1, delay2)
+                    print(Fore.YELLOW + f"[/] Esperando {realdelay} segundos para prosseguir...")
+                    sleep(realdelay)
+            else:
+                print(Fore.GREEN + f"[+] Questão de ID {oneureka_questionid} realizada! | Eureka Finalizado.")
+                print(Fore.GREEN + "[+] Eureka realizado com sucesso!")
+                finisheureka(oneureka_assignment)
+                session.close()
+                if (chapters.index(chapter) + 1) == len(df):
+                    print("-------------------------------------------------")
+                    input("[>>] Aperte ENTER para voltar ao menu: ")
+                    os.system("cls")
+                    main()
+                else: 
+                    os.system("cls")
+
+
+
+def autoeureka():
+    ## /Online
+    oneureka_eurekaid = oneureka.split("/")[-2]
+    oneureka_assignment = getassignmentcode(oneureka_eurekaid)
+    contador = 0
+
+    print(Fore.CYAN + """
+
+ █████╗ ██╗   ██╗████████╗ ██████╗     ███████╗██╗   ██╗██████╗ ███████╗██╗  ██╗ █████╗ 
+██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗    ██╔════╝██║   ██║██╔══██╗██╔════╝██║ ██╔╝██╔══██╗
+███████║██║   ██║   ██║   ██║   ██║    █████╗  ██║   ██║██████╔╝█████╗  █████╔╝ ███████║
+██╔══██║██║   ██║   ██║   ██║   ██║    ██╔══╝  ██║   ██║██╔══██╗██╔══╝  ██╔═██╗ ██╔══██║
+██║  ██║╚██████╔╝   ██║   ╚██████╔╝    ███████╗╚██████╔╝██║  ██║███████╗██║  ██╗██║  ██║
+╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝
+                                [Modo: Auto Eureka]                                                        
+""")
+
+    currentquestion = getcurrentquestion(oneureka_assignment)
+    while contador < ((question_stop + 1) - currentquestion):
+        oneureka_questionid = getquestionid(oneureka_eurekaid)
+        oneureka_assignment = getassignmentcode(oneureka_eurekaid)
+        try:
+            respostacerta = getrightquestion(oneureka_eurekaid)
+        except KeyError:
+            print(Fore.RED + f"[-] Um erro ocorreu! Troque o link de Eureka antigo, ou resete seu AUTH (token de autenticação).")
+            sleep(2)
+            os.system("cls")
+            main()
+            break
+        markquestion(oneureka_assignment, respostacerta, oneureka_questionid)
+        contador += 1
+        if (currentquestion + contador) != (question_stop + 1):
+            passquestion(oneureka_assignment)
+            print(Fore.GREEN + f"[+] Questão de ID {oneureka_questionid} realizada! | Questão Atual: {currentquestion + contador}.")
+            spliteddelay = delay.split(", ")
+            delay1 = int(spliteddelay[0])
+            delay2 = int(spliteddelay[1])
+            if (delay1 and delay2) != 0 and (safemode == True):
+                realdelay = random.randint(delay1, delay2)
+                print(Fore.YELLOW + f"[/] Esperando {realdelay} segundos para prosseguir...")
+                sleep(realdelay)
+        else:
+            print(Fore.GREEN + f"[+] Questão de ID {oneureka_questionid} realizada! | Eureka Finalizado.")
+            print(Fore.GREEN + "[+] Eureka realizado com sucesso!")
+            finisheureka(oneureka_assignment)
+            session.close()
+            print("-------------------------------------------------")
+            input("[>>] Aperte ENTER para voltar ao menu: ")
+            os.system("cls")
+            main()
+
+main()
